@@ -123,7 +123,7 @@ while True:
                         }
                 wcapi.put(f"products/{row[0]}", data).json()
                 print(row)
-                
+
         # Executa a atualização SQL
         if len(rows) > 0:
             cursor.execute(update_ultqt)
@@ -135,15 +135,16 @@ while True:
             print('SEM ALTERAÇÕES')
             pass
 
+        # Fecha o cursor e a conexão
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
     except cx_Oracle.DatabaseError as e:
         # Trata os erros de conexão e execução
         error, = e.args
         print(f"Erro ao conectar ao banco de dados: {error.message}")
 
     finally:
-        # Fecha o cursor e a conexão
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
         hora_requisicao()
