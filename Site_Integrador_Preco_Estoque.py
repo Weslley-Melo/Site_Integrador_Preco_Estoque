@@ -31,21 +31,9 @@ def hora_requisicao():
     # Pausa o scrip em 5min
     sleep(300)
 
-# Consultas e Updates do SQL
-query_ext_dados = """SELECT 
-                    W.IDPRODUCT
-                    ,E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV) AS STOCK_QUANTITY
-                    ,TRUNC(T.PTABELA, 2) AS PRICE
-                    ,W.IDPRODUCTPRINC
-                    FROM WEBSITE_TEMP W
-                    INNER JOIN PCTABPR T ON T.CODPROD = W.CODPROD
-                    AND T.NUMREGIAO = 9
-                    INNER JOIN PCEST E ON E.CODPROD = W.CODPROD
-                    AND E.CODFILIAL = 1
-                    WHERE 1 = 1
-                    AND W.ULTQT <> E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV) OR TRUNC(NVL(W.ULTPRECO, 0), 2) <> TRUNC(T.PTABELA, 2)"""
-
-update_ultqt = """UPDATE WEBSITE_TEMP W
+def sql_update_ultqt_ultpreco():
+    # Update campo ultqt
+    update_ultqt = """UPDATE WEBSITE_TEMP W
                     SET W.ULTQT = (
                         SELECT (E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV))
                         FROM PCEST E
@@ -65,8 +53,10 @@ update_ultqt = """UPDATE WEBSITE_TEMP W
                         WHERE E.CODPROD = W.CODPROD
                         AND E.CODFILIAL = 1
                     )"""
-
-update_ultpreco = """UPDATE WEBSITE_TEMP W
+    cursor.execute(update_ultqt)
+    connection.commit()
+    # Update campo ultpreco
+    update_ultpreco = """UPDATE WEBSITE_TEMP W
                     SET W.ULTPRECO = (
                         SELECT TRUNC(P.PTABELA, 2)
                         FROM PCTABPR P
@@ -85,6 +75,27 @@ update_ultpreco = """UPDATE WEBSITE_TEMP W
                         WHERE P.CODPROD = W.CODPROD
                         AND P.NUMREGIAO = 9
                     )"""
+    cursor.execute(update_ultpreco)
+    connection.commit()
+
+def sql_select_ultqt_ultpreco():
+    sql_select_ultqt_ultpreco = """SELECT 
+                    W.IDPRODUCT
+                    ,E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV) AS STOCK_QUANTITY
+                    ,TRUNC(T.PTABELA, 2) AS PRICE
+                    ,W.IDPRODUCTPRINC
+                    FROM WEBSITE_TEMP W
+                    INNER JOIN PCTABPR T ON T.CODPROD = W.CODPROD
+                    AND T.NUMREGIAO = 9
+                    INNER JOIN PCEST E ON E.CODPROD = W.CODPROD
+                    AND E.CODFILIAL = 1
+                    WHERE 1 = 1
+                    AND W.ULTQT <> E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV) OR TRUNC(NVL(W.ULTPRECO, 0), 2) <> TRUNC(T.PTABELA, 2)"""
+    # Executa a consulta SQL
+    cursor.execute(sql_select_ultqt_ultpreco)
+    # Obtém os resultados
+    rows = cursor.fetchall()
+    return rows
 
 # Scrip
 while True:
@@ -101,14 +112,8 @@ while True:
         # Cria um cursor
         cursor = connection.cursor()
 
-        # Executa a consulta SQL
-        cursor.execute(query_ext_dados)
-
-        # Obtém os resultados
-        rows = cursor.fetchall()
-
         # Processa os resultados
-        for row in rows:
+        for row in sql_select_ultqt_ultpreco():
             if row[0] != row[3]:
                 data = {
                             "regular_price": str(row[2]),
@@ -124,11 +129,8 @@ while True:
             print(f"IDPRODUCTPRINC: {row[3]} / IDPRODUCT: {row[0]} / QTEST: {row[1]} / VLVENDA: R${row[2]}")
 
         # Executa a atualização SQL
-        if len(rows) > 0:
-            cursor.execute(update_ultqt)
-            connection.commit()
-            cursor.execute(update_ultpreco)
-            connection.commit()
+        if len(sql_select_ultqt_ultpreco()) > 0:
+            sql_update_ultqt_ultpreco()
             print("Dados Atualizados no Banco de Dados e Ecommerce")
         else:
             print("Aplicação Não Possui Atualizações de Estoque ou Preço")
