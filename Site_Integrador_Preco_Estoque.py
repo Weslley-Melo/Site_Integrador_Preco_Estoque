@@ -2,6 +2,7 @@ import cx_Oracle
 from woocommerce import API
 from time import sleep
 import os
+from datetime import datetime, timedelta
 
 # Configurações de conexão
 credential_bd = { # Acesso ao BD
@@ -19,11 +20,18 @@ wcapi = API(
     version="wc/v3"
 )
 
-# Contador de repetições/laços
-contador = 1
+# Funções
+def hora_requisicao():
+    # Obtém a hora atual
+    hora_atual = datetime.now()
+    # Soma 5 minutos
+    hora_futura = hora_atual + timedelta(minutes=5)
+    # Exibe os resultados
+    print("Horário final da requisição:", hora_atual.strftime("%H:%Mh"), "=---=","Horário da próx. requisição:", hora_futura.strftime("%H:%Mh"))
+    # Pausa o scrip em 5min
+    sleep(300)
 
 # Consultas e Updates do SQL
-
 query_ext_dados = """SELECT 
                     W.IDPRODUCT
                     ,E.QTESTGER - (E.QTBLOQUEADA + E.QTRESERV) AS STOCK_QUANTITY
@@ -78,8 +86,12 @@ update_ultpreco = """UPDATE WEBSITE_TEMP W
                         AND P.NUMREGIAO = 9
                     )"""
 
-
-while contador < 156:
+# Scrip
+while True:
+    hora_atual = datetime.now()
+    hora_formatada = hora_atual.strftime('%H')
+    if hora_formatada == '23':
+        break
     connection = None
     cursor = None
     try:
@@ -111,7 +123,7 @@ while contador < 156:
                         }
                 wcapi.put(f"products/{row[0]}", data).json()
                 print(row)
-
+                
         # Executa a atualização SQL
         if len(rows) > 0:
             cursor.execute(update_ultqt)
@@ -134,6 +146,4 @@ while contador < 156:
             cursor.close()
         if connection:
             connection.close()
-    contador += 1 
-    sleep(300)
-    print(f'RECOMEÇANDO / {contador}/156 REQUISIÇÕES')
+        hora_requisicao()
