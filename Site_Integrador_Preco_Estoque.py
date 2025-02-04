@@ -103,8 +103,6 @@ while True:
     hora_formatada = hora_atual.strftime('%H')
     if hora_formatada == '23':
         break
-    connection = None
-    cursor = None
     try:
         # Estabelece a conexão
         connection = cx_Oracle.connect(credential_bd['username'], credential_bd['password'], credential_bd['dsn'])
@@ -113,20 +111,20 @@ while True:
         cursor = connection.cursor()
 
         # Processa os resultados
-        for row in sql_select_ultqt_ultpreco():
-            if row[0] != row[3]:
+        for idproduct, stock_quantity, price, idproductprinc in sql_select_ultqt_ultpreco():
+            if idproduct != idproductprinc:
                 data = {
-                            "regular_price": str(row[2]),
-                            "stock_quantity": int(row[1])
+                            "regular_price": str(price),
+                            "stock_quantity": int(stock_quantity)
                         }
-                wcapi.put(f"products/{row[3]}/variations/{row[0]}", data).json()
+                wcapi.put(f"products/{idproductprinc}/variations/{idproduct}", data).json()
             else:
                 data = {
-                            "regular_price": str(row[2]),
-                            "stock_quantity": int(row[1])
+                            "regular_price": str(price),
+                            "stock_quantity": int(stock_quantity)
                         }
-                wcapi.put(f"products/{row[0]}", data).json()
-            print(f"IDPRODUCTPRINC: {row[3]} / IDPRODUCT: {row[0]} / QTEST: {row[1]} / VLVENDA: R${row[2]}")
+                wcapi.put(f"products/{idproduct}", data).json()
+            print(f"IDPRODUCTPRINC: {idproductprinc} / IDPRODUCT: {idproduct} / VLVENDA: R${price} / QTEST: {stock_quantity}")
 
         # Executa a atualização SQL
         if len(sql_select_ultqt_ultpreco()) > 0:
