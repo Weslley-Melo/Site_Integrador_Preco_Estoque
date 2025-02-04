@@ -115,14 +115,13 @@ while True:
                             "stock_quantity": int(row[1])
                         }
                 wcapi.put(f"products/{row[3]}/variations/{row[0]}", data).json()
-                print(row)
             else:
                 data = {
                             "regular_price": str(row[2]),
                             "stock_quantity": int(row[1])
                         }
                 wcapi.put(f"products/{row[0]}", data).json()
-                print(row)
+            print(f"IDPRODUCTPRINC: {row[3]} / IDPRODUCT: {row[0]} / QTEST: {row[1]} / VLVENDA: R${row[2]}")
 
         # Executa a atualização SQL
         if len(rows) > 0:
@@ -130,9 +129,9 @@ while True:
             connection.commit()
             cursor.execute(update_ultpreco)
             connection.commit()
-            print('DADOS ATUALIZADOS NO BD E SITE')
+            print("Dados Atualizados no Banco de Dados e Ecommerce")
         else:
-            print('SEM ALTERAÇÕES')
+            print("Aplicação Não Possui Atualizações de Estoque ou Preço")
             pass
 
         # Fecha o cursor e a conexão
